@@ -1,27 +1,30 @@
 "use client";
 
 import { useState } from "react";
+
 import Modal from "@/components/ui/Modal";
 import { Turf, TurfStatus } from "@/types/turf";
 
-interface Props {
+interface AddTurfModalProps {
   open: boolean;
   onClose: () => void;
   onAddTurf: (turf: Turf) => void;
 }
 
+const defaultImage =
+  "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1200&q=80";
+
 export default function AddTurfModal({
   open,
   onClose,
   onAddTurf,
-}: Props) {
+}: AddTurfModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     location: "",
     type: "Football",
     status: "Available" as TurfStatus,
-    image:
-      "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1200&q=80",
+    image: defaultImage,
     bookings: 0,
     revenue: 0,
     occupancy: 0,
@@ -31,12 +34,13 @@ export default function AddTurfModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.location || !formData.type) return;
+    if (!formData.name || !formData.location || !formData.type) {
+      return;
+    }
 
     onAddTurf({
       id: Date.now(),
       ...formData,
-      imageVariant: "green",
       createdAt: new Date().toISOString(),
     });
 
@@ -45,8 +49,7 @@ export default function AddTurfModal({
       location: "",
       type: "Football",
       status: "Available",
-      image:
-        "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1200&q=80",
+      image: defaultImage,
       bookings: 0,
       revenue: 0,
       occupancy: 0,
@@ -63,7 +66,10 @@ export default function AddTurfModal({
           <input
             value={formData.name}
             onChange={(e) =>
-              setFormData({ ...formData, name: e.target.value })
+              setFormData({
+                ...formData,
+                name: e.target.value,
+              })
             }
             placeholder="Turf name"
             className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
@@ -72,7 +78,10 @@ export default function AddTurfModal({
           <input
             value={formData.location}
             onChange={(e) =>
-              setFormData({ ...formData, location: e.target.value })
+              setFormData({
+                ...formData,
+                location: e.target.value,
+              })
             }
             placeholder="Location"
             className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
@@ -80,14 +89,20 @@ export default function AddTurfModal({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <input
+          <select
             value={formData.type}
             onChange={(e) =>
-              setFormData({ ...formData, type: e.target.value })
+              setFormData({
+                ...formData,
+                type: e.target.value,
+              })
             }
-            placeholder="Type"
             className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
-          />
+          >
+            <option value="Football">Football</option>
+            <option value="Cricket">Cricket</option>
+            <option value="Badminton">Badminton</option>
+          </select>
 
           <select
             value={formData.status}
@@ -109,7 +124,10 @@ export default function AddTurfModal({
         <input
           value={formData.image}
           onChange={(e) =>
-            setFormData({ ...formData, image: e.target.value })
+            setFormData({
+              ...formData,
+              image: e.target.value,
+            })
           }
           placeholder="Image URL"
           className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
@@ -126,7 +144,7 @@ export default function AddTurfModal({
               })
             }
             placeholder="Bookings"
-            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
 
           <input
@@ -139,7 +157,7 @@ export default function AddTurfModal({
               })
             }
             placeholder="Revenue"
-            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
         </div>
 
@@ -154,7 +172,7 @@ export default function AddTurfModal({
               })
             }
             placeholder="Occupancy %"
-            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
 
           <input
@@ -167,22 +185,22 @@ export default function AddTurfModal({
               })
             }
             placeholder="Availability %"
-            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-3">
+        <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-slate-200 px-5 py-3 font-bold"
+            className="rounded-2xl border border-slate-200 px-5 py-3 font-black text-slate-700 transition hover:bg-slate-50"
           >
             Cancel
           </button>
 
           <button
             type="submit"
-            className="rounded-2xl bg-emerald-500 px-5 py-3 font-bold text-white"
+            className="rounded-2xl bg-emerald-500 px-5 py-3 font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
           >
             Add Turf
           </button>
