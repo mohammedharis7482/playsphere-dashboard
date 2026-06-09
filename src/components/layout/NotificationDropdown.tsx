@@ -41,9 +41,29 @@ export default function NotificationDropdown({ open, onClose }: Props) {
   const unreadCount = notifications.filter((item) => !item.read).length;
 
   return (
-    <div className="absolute right-0 top-14 z-50 w-[360px] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+    <div
+  className="
+    absolute
+    right-0
+    top-14
+
+    w-[92vw]
+    max-w-[380px]
+
+    sm:w-[380px]
+
+    max-h-[75vh]
+    overflow-hidden
+
+    rounded-[28px]
+    border
+    border-slate-200
+    bg-white
+    shadow-2xl
+  "
+>
       <div className="flex items-center justify-between border-b border-slate-100 p-5">
-        <div>
+      <div className="max-h-[55vh] overflow-y-auto">
           <h3 className="text-lg font-black text-slate-950">
             Notifications
           </h3>
@@ -65,10 +85,10 @@ export default function NotificationDropdown({ open, onClose }: Props) {
           return (
             <div
               key={item.id}
-              className="flex gap-3 rounded-3xl p-3 transition hover:bg-slate-50"
+              className="flex gap-2 sm:gap-3 rounded-3xl p-3 transition hover:bg-slate-50"
             >
               <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${styleMap[item.type]}`}
+                className={`flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl ${styleMap[item.type]}`}
               >
                 <Icon size={19} />
               </div>
