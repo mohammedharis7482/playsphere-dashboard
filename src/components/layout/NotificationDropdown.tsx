@@ -34,36 +34,40 @@ const styleMap: Record<NotificationType, string> = {
   System: "bg-slate-100 text-slate-600",
 };
 
-export default function NotificationDropdown({ open, onClose }: Props) {
+export default function NotificationDropdown({
+  open,
+  onClose,
+}: Props) {
   if (!open) return null;
 
   const latest = notifications.slice(0, 5);
-  const unreadCount = notifications.filter((item) => !item.read).length;
+  const unreadCount = notifications.filter(
+    (item) => !item.read
+  ).length;
 
   return (
     <div
-  className="
-    absolute
-    right-0
-    top-14
+      className="
+        fixed left-1/2 top-[86px] z-[9999]
+        w-[calc(100vw-24px)]
+        max-w-[420px]
+        -translate-x-1/2
+        overflow-hidden
+        rounded-[28px]
+        border border-slate-200
+        bg-white
+        shadow-2xl shadow-slate-900/15
 
-    w-[92vw]
-    max-w-[380px]
-
-    sm:w-[380px]
-
-    max-h-[75vh]
-    overflow-hidden
-
-    rounded-[28px]
-    border
-    border-slate-200
-    bg-white
-    shadow-2xl
-  "
->
-      <div className="flex items-center justify-between border-b border-slate-100 p-5">
-      <div className="max-h-[55vh] overflow-y-auto">
+        sm:absolute
+        sm:left-auto
+        sm:right-0
+        sm:top-14
+        sm:w-[380px]
+        sm:translate-x-0
+      "
+    >
+      <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5">
+        <div>
           <h3 className="text-lg font-black text-slate-950">
             Notifications
           </h3>
@@ -73,34 +77,42 @@ export default function NotificationDropdown({ open, onClose }: Props) {
           </p>
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
           <Bell size={20} />
         </div>
       </div>
 
-      <div className="max-h-[380px] overflow-y-auto p-3">
+      <div className="max-h-[52vh] overflow-y-auto p-3">
         {latest.map((item) => {
           const Icon = iconMap[item.type];
 
           return (
             <div
               key={item.id}
-              className="flex gap-2 sm:gap-3 rounded-3xl p-3 transition hover:bg-slate-50"
+              className="
+                flex gap-3 rounded-3xl p-3
+                transition hover:bg-slate-50
+              "
             >
               <div
-                className={`flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl ${styleMap[item.type]}`}
+                className={`
+                  flex h-11 w-11 shrink-0
+                  items-center justify-center
+                  rounded-2xl
+                  ${styleMap[item.type]}
+                `}
               >
                 <Icon size={19} />
               </div>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-sm font-black text-slate-950">
+                  <h4 className="text-sm font-black leading-5 text-slate-950">
                     {item.title}
                   </h4>
 
                   {!item.read && (
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                   )}
                 </div>
 
@@ -121,7 +133,14 @@ export default function NotificationDropdown({ open, onClose }: Props) {
         <Link
           href="/dashboard/notifications"
           onClick={onClose}
-          className="flex h-12 items-center justify-center rounded-2xl bg-emerald-500 text-sm font-black text-white transition hover:bg-emerald-600"
+          className="
+            flex h-12 items-center justify-center
+            rounded-2xl
+            bg-emerald-500
+            text-sm font-black text-white
+            shadow-lg shadow-emerald-500/20
+            transition hover:bg-emerald-600
+          "
         >
           View All Notifications
         </Link>
