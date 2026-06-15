@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  CreditCard,
   LayoutDashboard,
   Settings,
   Trophy,
@@ -35,14 +36,19 @@ const menuItems = [
     icon: Trophy,
   },
   {
+    title: "Customers",
+    href: "/dashboard/customers",
+    icon: Users,
+  },
+  {
+    title: "Payments",
+    href: "/dashboard/payments",
+    icon: CreditCard,
+  },
+  {
     title: "Analytics",
     href: "/dashboard/analytics",
     icon: BarChart3,
-  },
-  {
-    title: "Users",
-    href: "/dashboard/users",
-    icon: Users,
   },
   {
     title: "Settings",
@@ -76,12 +82,8 @@ export default function Sidebar({
         `}
       >
         <div className="flex h-full flex-col">
-          {/* LOGO */}
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-7">
-            <Link
-              href="/dashboard"
-              onClick={() => setSidebarOpen(false)}
-            >
+            <Link href="/dashboard" onClick={() => setSidebarOpen(false)}>
               <h1 className="text-[34px] font-black leading-none tracking-[-0.04em] text-slate-950">
                 PlaySphere
               </h1>
@@ -99,7 +101,6 @@ export default function Sidebar({
             </button>
           </div>
 
-          {/* MENU */}
           <nav className="flex-1 px-4 py-6">
             <div className="space-y-2">
               {menuItems.map((item) => {
@@ -145,7 +146,6 @@ export default function Sidebar({
             </div>
           </nav>
 
-          {/* PROFILE */}
           <div className="p-4">
             <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center gap-3">

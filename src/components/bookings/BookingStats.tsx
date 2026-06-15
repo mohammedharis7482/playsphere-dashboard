@@ -15,11 +15,11 @@ interface Props {
 
 export default function BookingStats({ bookings }: Props) {
   const total = bookings.length;
-  const confirmed = bookings.filter((b) => b.status === "Confirmed").length;
-  const pending = bookings.filter((b) => b.status === "Pending").length;
+  const confirmed = bookings.filter((b) => b.status === "CONFIRMED").length;
+  const pending = bookings.filter((b) => b.status === "PENDING").length;
 
   const revenue = bookings
-    .filter((b) => b.paymentStatus === "Paid")
+    .filter((b) => b.paymentStatus === "PAID")
     .reduce((sum, b) => sum + b.amount, 0);
 
   const stats = [

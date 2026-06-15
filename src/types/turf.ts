@@ -1,19 +1,17 @@
-export type TurfStatus =
-  | "Available"
-  | "Busy"
-  | "Maintenance"
-  | "Unavailable";
+export type TurfStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 
 export interface Turf {
-  id: number;
+  id: string;
   name: string;
   location: string;
   type: string;
   status: TurfStatus;
   image: string;
-  bookings: number;
+  price: number;
   revenue: number;
+  bookings: number;
   occupancy: number;
   availability: number;
+  rating: number;
   createdAt: string;
 }

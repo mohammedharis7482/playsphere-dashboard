@@ -9,20 +9,42 @@ interface Props {
   booking: Booking | null;
 }
 
+const statusColor = {
+  PENDING: "bg-yellow-100 text-yellow-700",
+  CONFIRMED: "bg-blue-100 text-blue-700",
+  COMPLETED: "bg-green-100 text-green-700",
+  CANCELLED: "bg-red-100 text-red-700",
+};
+
+const paymentColor = {
+  PENDING: "bg-yellow-100 text-yellow-700",
+  PAID: "bg-emerald-100 text-emerald-700",
+  FAILED: "bg-red-100 text-red-700",
+  REFUNDED: "bg-purple-100 text-purple-700",
+};
+
+function formatLabel(value: string) {
+  return value.charAt(0) + value.slice(1).toLowerCase();
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatTime(date: string) {
+  return new Date(date).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export default function ViewBookingModal({ open, onClose, booking }: Props) {
   if (!booking) return null;
-
-  const statusColor = {
-    Pending: "bg-yellow-100 text-yellow-700",
-    Confirmed: "bg-blue-100 text-blue-700",
-    Completed: "bg-emerald-100 text-emerald-700",
-    Cancelled: "bg-red-100 text-red-700",
-  };
-
-  const paymentColor = {
-    Pending: "bg-orange-100 text-orange-700",
-    Paid: "bg-emerald-100 text-emerald-700",
-  };
 
   return (
     <Modal open={open} onClose={onClose} title="Booking Details">
@@ -42,13 +64,18 @@ export default function ViewBookingModal({ open, onClose, booking }: Props) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <InfoItem label="Date" value={booking.date} />
+          <InfoItem label="Date" value={formatDate(booking.date)} />
           <InfoItem
             label="Time"
-            value={`${booking.startTime} - ${booking.endTime}`}
+            value={`${formatTime(booking.startTime)} - ${formatTime(
+              booking.endTime
+            )}`}
           />
           <InfoItem label="Duration" value={`${booking.duration} hrs`} />
-          <InfoItem label="Amount" value={`₹${booking.amount}`} />
+          <InfoItem
+            label="Amount"
+            value={`₹${booking.amount.toLocaleString("en-IN")}`}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -58,9 +85,11 @@ export default function ViewBookingModal({ open, onClose, booking }: Props) {
             </p>
 
             <span
-              className={`rounded-full px-3 py-1 text-sm font-bold ${statusColor[booking.status]}`}
+              className={`rounded-full px-3 py-1 text-sm font-bold ${
+                statusColor[booking.status]
+              }`}
             >
-              {booking.status}
+              {formatLabel(booking.status)}
             </span>
           </div>
 
@@ -70,16 +99,18 @@ export default function ViewBookingModal({ open, onClose, booking }: Props) {
             </p>
 
             <span
-              className={`rounded-full px-3 py-1 text-sm font-bold ${paymentColor[booking.paymentStatus]}`}
+              className={`rounded-full px-3 py-1 text-sm font-bold ${
+                paymentColor[booking.paymentStatus]
+              }`}
             >
-              {booking.paymentStatus}
+              {formatLabel(booking.paymentStatus)}
             </span>
           </div>
         </div>
 
         <InfoItem
           label="Created At"
-          value={new Date(booking.createdAt).toLocaleString()}
+          value={new Date(booking.createdAt).toLocaleString("en-IN")}
         />
 
         <div className="flex justify-end pt-3">

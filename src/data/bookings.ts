@@ -2,7 +2,7 @@ import { Booking } from "@/types/booking";
 
 export const bookings: Booking[] = [
   {
-    id: 1001,
+    id: "1001",
     customerName: "Rahul Kumar",
     customerPhone: "9876543210",
     turfName: "Football Turf A",
@@ -15,14 +15,14 @@ export const bookings: Booking[] = [
 
     amount: 1200,
 
-    paymentStatus: "Paid",
-    status: "Confirmed",
+    paymentStatus: "PAID",
+    status: "CONFIRMED",
 
     createdAt: "2026-06-10",
   },
 
   {
-    id: 1002,
+    id: "1002",
     customerName: "Arjun Nair",
     customerPhone: "9876543211",
     turfName: "Cricket Turf",
@@ -35,14 +35,14 @@ export const bookings: Booking[] = [
 
     amount: 1500,
 
-    paymentStatus: "Pending",
-    status: "Pending",
+    paymentStatus: "PENDING",
+    status: "PENDING",
 
     createdAt: "2026-06-10",
   },
 
   {
-    id: 1003,
+    id: "1003",
     customerName: "Mohammed Ali",
     customerPhone: "9876543212",
     turfName: "Football Turf B",
@@ -55,14 +55,14 @@ export const bookings: Booking[] = [
 
     amount: 1300,
 
-    paymentStatus: "Paid",
-    status: "Completed",
+    paymentStatus: "PAID",
+    status: "COMPLETED",
 
     createdAt: "2026-06-11",
   },
 
   {
-    id: 1004,
+    id: "1004",
     customerName: "Vishnu Das",
     customerPhone: "9876543213",
     turfName: "Badminton Court",
@@ -75,14 +75,14 @@ export const bookings: Booking[] = [
 
     amount: 800,
 
-    paymentStatus: "Pending",
-    status: "Cancelled",
+    paymentStatus: "PENDING",
+    status: "CANCELLED",
 
     createdAt: "2026-06-12",
   },
 
   {
-    id: 1005,
+    id: "1005",
     customerName: "Akash Menon",
     customerPhone: "9876543214",
     turfName: "Football Turf A",
@@ -95,8 +95,8 @@ export const bookings: Booking[] = [
 
     amount: 1400,
 
-    paymentStatus: "Paid",
-    status: "Confirmed",
+    paymentStatus: "PAID",
+    status: "CONFIRMED",
 
     createdAt: "2026-06-13",
   },

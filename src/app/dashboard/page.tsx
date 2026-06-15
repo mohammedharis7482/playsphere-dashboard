@@ -35,21 +35,21 @@ export default function DashboardPage() {
 
       <StatsOverview />
 
-      <RevenueChart />
+      <div className="grid gap-6 xl:grid-cols-[1fr,380px]">
+        <RevenueChart />
+        <OperationsSummary />
+      </div>
 
       <QuickActions />
 
+      <BusinessModules />
+
       <div className="grid gap-6 xl:grid-cols-[1fr,380px]">
-        <OperationsSummary />
+        <ActivityFeed />
         <ReviewsPreview />
       </div>
 
-      <BusinessModules />
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <ActivityFeed />
-        <AvailabilityCard />
-      </div>
+      <AvailabilityCard />
     </div>
   );
 }

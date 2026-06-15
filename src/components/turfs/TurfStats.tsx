@@ -7,7 +7,7 @@ interface Props {
 
 export default function TurfStats({ turfs }: Props) {
   const total = turfs.length;
-  const active = turfs.filter((turf) => turf.status !== "Unavailable").length;
+  const active = turfs.filter((turf) => turf.status === "ACTIVE").length;
   const bookings = turfs.reduce((sum, turf) => sum + turf.bookings, 0);
   const revenue = turfs.reduce((sum, turf) => sum + turf.revenue, 0);
 

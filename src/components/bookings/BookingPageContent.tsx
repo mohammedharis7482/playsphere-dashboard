@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Booking } from "@/types/booking";
-import { bookings as initialBookings } from "@/data/bookings";
 
 import BookingStats from "./BookingStats";
 import BookingRevenueCard from "./BookingRevenueCard";
@@ -17,15 +16,82 @@ import BookingPagination from "./BookingPagination";
 
 const ITEMS_PER_PAGE = 5;
 
+type ApiBooking = {
+  id: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  amount: number;
+  status: Booking["status"];
+  createdAt: string;
+  customer: {
+    name: string;
+    phone: string;
+  };
+  turf: {
+    name: string;
+  };
+  payment: {
+    status: Booking["paymentStatus"];
+  } | null;
+};
+
+function formatBooking(booking: ApiBooking): Booking {
+  const start = new Date(booking.startTime);
+  const end = new Date(booking.endTime);
+
+  const duration =
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+  return {
+    id: booking.id,
+    customerName: booking.customer.name,
+    customerPhone: booking.customer.phone,
+    turfName: booking.turf.name,
+    date: booking.bookingDate,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    duration,
+    amount: booking.amount,
+    status: booking.status,
+    paymentStatus: booking.payment?.status || "PENDING",
+    createdAt: booking.createdAt,
+  };
+}
+
 export default function BookingPageContent() {
-  const [bookingList, setBookingList] = useState<Booking[]>(initialBookings);
+  const [bookingList, setBookingList] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState("table");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    async function fetchBookings() {
+      try {
+        const response = await fetch("/api/bookings", {
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const formattedBookings = data.data.map(formatBooking);
+          setBookingList(formattedBookings);
+        }
+      } catch (error) {
+        console.error("FETCH_BOOKINGS_ERROR", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchBookings();
+  }, []);
+
   const revenue = bookingList
-    .filter((booking) => booking.paymentStatus === "Paid")
+    .filter((booking) => booking.paymentStatus === "PAID")
     .reduce((total, booking) => total + booking.amount, 0);
 
   const filteredBookings = useMemo(() => {
@@ -67,7 +133,7 @@ export default function BookingPageContent() {
     );
   };
 
-  const handleDeleteBooking = (bookingId: number) => {
+  const handleDeleteBooking = (bookingId: string) => {
     setBookingList((prev) =>
       prev.filter((booking) => booking.id !== bookingId)
     );
@@ -78,6 +144,16 @@ export default function BookingPageContent() {
     setStatusFilter("All");
     setCurrentPage(1);
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[500px] items-center justify-center rounded-[28px] border border-slate-200 bg-white">
+        <p className="text-sm font-bold text-slate-500">
+          Loading bookings...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

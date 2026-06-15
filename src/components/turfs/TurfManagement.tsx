@@ -21,7 +21,7 @@ interface Props {
   setStatusFilter: (value: string) => void;
   onAddTurf: (turf: Turf) => void;
   onUpdateTurf: (turf: Turf) => void;
-  onDeleteTurf: (id: number) => void;
+  onDeleteTurf: (id: string) => void;
 }
 
 export default function TurfManagement({
@@ -64,12 +64,29 @@ export default function TurfManagement({
     setSortBy("Newest");
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!selectedTurf) return;
-
-    onDeleteTurf(selectedTurf.id);
-    setOpenDelete(false);
-    setSelectedTurf(null);
+  
+    try {
+      const response = await fetch(`/api/turfs/${selectedTurf.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+  
+      const data = await response.json();
+  
+      if (!data.success) {
+        alert(data.message || "Failed to delete turf.");
+        return;
+      }
+  
+      onDeleteTurf(selectedTurf.id);
+      setOpenDelete(false);
+      setSelectedTurf(null);
+    } catch (error) {
+      console.error("DELETE_TURF_ERROR", error);
+      alert("Something went wrong while deleting turf.");
+    }
   };
 
   return (

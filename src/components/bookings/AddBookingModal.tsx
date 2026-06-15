@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Modal from "@/components/ui/Modal";
 import {
@@ -15,120 +15,227 @@ interface Props {
   onAddBooking: (booking: Booking) => void;
 }
 
+type TurfOption = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+type CustomerOption = {
+  id: string;
+  name: string;
+  phone: string;
+};
+
+type ApiBooking = {
+  id: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  amount: number;
+  status: BookingStatus;
+  createdAt: string;
+  customer: {
+    name: string;
+    phone: string;
+  };
+  turf: {
+    name: string;
+  };
+  payment: {
+    status: PaymentStatus;
+  } | null;
+};
+
+function formatBooking(booking: ApiBooking): Booking {
+  const start = new Date(booking.startTime);
+  const end = new Date(booking.endTime);
+
+  return {
+    id: booking.id,
+    customerName: booking.customer.name,
+    customerPhone: booking.customer.phone,
+    turfName: booking.turf.name,
+    date: booking.bookingDate,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    duration: Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60)),
+    amount: booking.amount,
+    status: booking.status,
+    paymentStatus: booking.payment?.status || "PENDING",
+    createdAt: booking.createdAt,
+  };
+}
+
 export default function AddBookingModal({
   open,
   onClose,
   onAddBooking,
 }: Props) {
+  const [turfs, setTurfs] = useState<TurfOption[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+
   const [formData, setFormData] = useState({
-    customerName: "",
-    customerPhone: "",
-    turfName: "",
+    customerId: "",
+    turfId: "",
     date: "",
     startTime: "",
     endTime: "",
     amount: "",
-    status: "Pending" as BookingStatus,
-    paymentStatus: "Pending" as PaymentStatus,
+    status: "PENDING" as BookingStatus,
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const inputClass =
+    "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10";
+
+  useEffect(() => {
+    async function fetchOptions() {
+      try {
+        const [turfsResponse, customersResponse] = await Promise.all([
+          fetch("/api/turfs", { credentials: "include" }),
+          fetch("/api/customers", { credentials: "include" }),
+        ]);
+
+        const turfsData = await turfsResponse.json();
+        const customersData = await customersResponse.json();
+
+        if (turfsData.success) {
+          setTurfs(turfsData.data);
+        }
+
+        if (customersData.success) {
+          setCustomers(customersData.data);
+        }
+      } catch (error) {
+        console.error("FETCH_BOOKING_OPTIONS_ERROR", error);
+      }
+    }
+
+    if (open) {
+      fetchOptions();
+    }
+  }, [open]);
 
   const resetForm = () => {
     setFormData({
-      customerName: "",
-      customerPhone: "",
-      turfName: "",
+      customerId: "",
+      turfId: "",
       date: "",
       startTime: "",
       endTime: "",
       amount: "",
-      status: "Pending",
-      paymentStatus: "Pending",
+      status: "PENDING",
+    });
+    setError("");
+  };
+
+  const handleTurfChange = (turfId: string) => {
+    const selectedTurf = turfs.find((turf) => turf.id === turfId);
+
+    setFormData({
+      ...formData,
+      turfId,
+      amount: selectedTurf ? String(selectedTurf.price) : "",
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
-      !formData.customerName ||
-      !formData.customerPhone ||
-      !formData.turfName ||
+      !formData.customerId ||
+      !formData.turfId ||
       !formData.date ||
       !formData.startTime ||
       !formData.endTime ||
       !formData.amount
     ) {
+      setError("Please fill all required fields.");
       return;
     }
 
-    const start = Number(formData.startTime.split(":")[0]);
-    const end = Number(formData.endTime.split(":")[0]);
+    try {
+      setLoading(true);
+      setError("");
 
-    const newBooking: Booking = {
-      id: Date.now(),
-      customerName: formData.customerName,
-      customerPhone: formData.customerPhone,
-      turfName: formData.turfName,
-      date: formData.date,
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      duration: Math.max(1, end - start),
-      amount: Number(formData.amount),
-      status: formData.status,
-      paymentStatus: formData.paymentStatus,
-      createdAt: new Date().toISOString(),
-    };
+      const bookingDate = new Date(`${formData.date}T00:00:00`);
+      const startTime = new Date(`${formData.date}T${formData.startTime}:00`);
+      const endTime = new Date(`${formData.date}T${formData.endTime}:00`);
 
-    onAddBooking(newBooking);
-    resetForm();
-    onClose();
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          turfId: formData.turfId,
+          customerId: formData.customerId,
+          bookingDate,
+          startTime,
+          endTime,
+          amount: Number(formData.amount),
+          status: formData.status,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.message || "Failed to create booking.");
+        return;
+      }
+
+      onAddBooking(formatBooking(data.data));
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("ADD_BOOKING_ERROR", error);
+      setError("Something went wrong while creating booking.");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const inputClass =
-    "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10";
 
   return (
     <Modal open={open} onClose={onClose} title="Add New Booking">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Customer Name">
-            <input
-              value={formData.customerName}
+          <Field label="Customer">
+            <select
+              value={formData.customerId}
               onChange={(e) =>
-                setFormData({ ...formData, customerName: e.target.value })
+                setFormData({ ...formData, customerId: e.target.value })
               }
               className={inputClass}
-              placeholder="Enter customer name"
-            />
+            >
+              <option value="">Select Customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name} - {customer.phone}
+                </option>
+              ))}
+            </select>
           </Field>
 
-          <Field label="Phone Number">
-            <input
-              value={formData.customerPhone}
-              onChange={(e) =>
-                setFormData({ ...formData, customerPhone: e.target.value })
-              }
+          <Field label="Turf">
+            <select
+              value={formData.turfId}
+              onChange={(e) => handleTurfChange(e.target.value)}
               className={inputClass}
-              placeholder="Enter phone number"
-            />
+            >
+              <option value="">Select Turf</option>
+              {turfs.map((turf) => (
+                <option key={turf.id} value={turf.id}>
+                  {turf.name}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
-
-        <Field label="Turf">
-          <select
-            value={formData.turfName}
-            onChange={(e) =>
-              setFormData({ ...formData, turfName: e.target.value })
-            }
-            className={inputClass}
-          >
-            <option value="">Select Turf</option>
-            <option>Football Turf A</option>
-            <option>Football Turf B</option>
-            <option>Cricket Turf</option>
-            <option>Badminton Court</option>
-          </select>
-        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Date">
@@ -179,41 +286,25 @@ export default function AddBookingModal({
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Booking Status">
-            <select
-              value={formData.status}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  status: e.target.value as BookingStatus,
-                })
-              }
-              className={inputClass}
-            >
-              <option>Pending</option>
-              <option>Confirmed</option>
-              <option>Completed</option>
-              <option>Cancelled</option>
-            </select>
-          </Field>
+        <Field label="Booking Status">
+          <select
+            value={formData.status}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                status: e.target.value as BookingStatus,
+              })
+            }
+            className={inputClass}
+          >
+            <option value="PENDING">Pending</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </Field>
 
-          <Field label="Payment">
-            <select
-              value={formData.paymentStatus}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  paymentStatus: e.target.value as PaymentStatus,
-                })
-              }
-              className={inputClass}
-            >
-              <option>Pending</option>
-              <option>Paid</option>
-            </select>
-          </Field>
-        </div>
+        {error && <p className="text-sm font-bold text-red-500">{error}</p>}
 
         <div className="flex justify-end gap-3 pt-3">
           <button
@@ -226,9 +317,10 @@ export default function AddBookingModal({
 
           <button
             type="submit"
-            className="rounded-2xl bg-emerald-500 px-5 py-3 font-bold text-white transition hover:bg-emerald-600"
+            disabled={loading}
+            className="rounded-2xl bg-emerald-500 px-5 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-60"
           >
-            Create Booking
+            {loading ? "Creating..." : "Create Booking"}
           </button>
         </div>
       </form>

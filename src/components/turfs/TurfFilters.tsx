@@ -44,10 +44,9 @@ export default function TurfFilters({
         className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
       >
         <option value="All">All Status</option>
-        <option value="Available">Available</option>
-        <option value="Busy">Busy</option>
-        <option value="Maintenance">Maintenance</option>
-        <option value="Unavailable">Unavailable</option>
+<option value="ACTIVE">Active</option>
+<option value="INACTIVE">Inactive</option>
+<option value="MAINTENANCE">Maintenance</option>
       </select>
 
       <div className="relative">

@@ -26,7 +26,23 @@ interface Props {
   totalBookings: number;
   onAddBooking: (booking: Booking) => void;
   onUpdateBooking: (booking: Booking) => void;
-  onDeleteBooking: (bookingId: number) => void;
+  onDeleteBooking: (bookingId: string) => void;
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatTime(date: string) {
+  return new Date(date).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 export default function BookingTable({
@@ -43,12 +59,29 @@ export default function BookingTable({
   const [openView, setOpenView] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!selectedBooking) return;
 
-    onDeleteBooking(selectedBooking.id);
-    setOpenDelete(false);
-    setSelectedBooking(null);
+    try {
+      const response = await fetch(`/api/bookings/${selectedBooking.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        alert(data.message || "Failed to delete booking.");
+        return;
+      }
+
+      onDeleteBooking(selectedBooking.id);
+      setOpenDelete(false);
+      setSelectedBooking(null);
+    } catch (error) {
+      console.error("DELETE_BOOKING_ERROR", error);
+      alert("Something went wrong while deleting booking.");
+    }
   };
 
   return (
@@ -156,16 +189,17 @@ export default function BookingTable({
 
                     <td className="px-5 py-5">
                       <p className="font-bold text-slate-900">
-                        {booking.date}
+                        {formatDate(booking.date)}
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        {booking.startTime} - {booking.endTime}
+                        {formatTime(booking.startTime)} -{" "}
+                        {formatTime(booking.endTime)}
                       </p>
                     </td>
 
                     <td className="px-5 py-5 font-black text-slate-950">
-                      ₹{booking.amount.toLocaleString()}
+                      ₹{booking.amount.toLocaleString("en-IN")}
                     </td>
 
                     <td className="px-5 py-5">

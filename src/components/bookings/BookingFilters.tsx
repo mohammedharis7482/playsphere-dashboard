@@ -40,11 +40,11 @@ export default function BookingFilters({
         onChange={(e) => setStatusFilter(e.target.value)}
         className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
       >
-        <option value="All">All Status</option>
-        <option value="Confirmed">Confirmed</option>
-        <option value="Pending">Pending</option>
-        <option value="Completed">Completed</option>
-        <option value="Cancelled">Cancelled</option>
+       <option value="All">All Status</option>
+<option value="PENDING">Pending</option>
+<option value="CONFIRMED">Confirmed</option>
+<option value="COMPLETED">Completed</option>
+<option value="CANCELLED">Cancelled</option>
       </select>
 
       {hasFilters && (
