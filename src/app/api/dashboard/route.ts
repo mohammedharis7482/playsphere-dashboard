@@ -5,6 +5,15 @@ import { requireAuth } from "@/lib/require-auth";
 
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+type PaymentAmount = {
+  amount: number;
+};
+
+type PaidPayment = {
+  amount: number;
+  createdAt: Date;
+};
+
 export async function GET() {
   try {
     const session = await requireAuth();
@@ -25,11 +34,18 @@ export async function GET() {
       totalTurfs,
       recentBookings,
       payments,
-      bookingStatuses,
+      pendingBookings,
+      confirmedBookings,
+      completedBookings,
+      cancelledBookings,
       paidPayments,
+      pendingPayments,
+      unreadAlerts,
     ] = await Promise.all([
       prisma.customer.count(),
+
       prisma.booking.count(),
+
       prisma.turf.count({
         where: {
           status: "ACTIVE",
@@ -52,11 +68,33 @@ export async function GET() {
         where: {
           status: "PAID",
         },
+        select: {
+          amount: true,
+        },
       }),
 
-      prisma.booking.groupBy({
-        by: ["status"],
-        _count: true,
+      prisma.booking.count({
+        where: {
+          status: "PENDING",
+        },
+      }),
+
+      prisma.booking.count({
+        where: {
+          status: "CONFIRMED",
+        },
+      }),
+
+      prisma.booking.count({
+        where: {
+          status: "COMPLETED",
+        },
+      }),
+
+      prisma.booking.count({
+        where: {
+          status: "CANCELLED",
+        },
       }),
 
       prisma.payment.findMany({
@@ -68,53 +106,59 @@ export async function GET() {
           createdAt: true,
         },
       }),
+
+      prisma.payment.count({
+        where: {
+          status: "PENDING",
+        },
+      }),
+
+      prisma.notification.count({
+        where: {
+          isRead: false,
+        },
+      }),
     ]);
 
-    const totalRevenue = payments.reduce(
-      (sum, payment) => sum + payment.amount,
+    const totalRevenue = (payments as PaymentAmount[]).reduce(
+      (sum: number, payment: PaymentAmount) => sum + payment.amount,
       0
     );
 
-    const bookingStatusSummary = bookingStatuses.reduce(
-      (acc, item) => {
-        acc[item.status] = item._count;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const bookingStatusSummary: Record<string, number> = {
+      PENDING: pendingBookings,
+      CONFIRMED: confirmedBookings,
+      COMPLETED: completedBookings,
+      CANCELLED: cancelledBookings,
+    };
 
     const revenueChart = dayNames.map((day) => ({
       day,
       revenue: 0,
     }));
 
-    paidPayments.forEach((payment) => {
+    (paidPayments as PaidPayment[]).forEach((payment: PaidPayment) => {
       const dayIndex = new Date(payment.createdAt).getDay();
       revenueChart[dayIndex].revenue += payment.amount;
     });
 
     return NextResponse.json({
       success: true,
+
       stats: {
         totalRevenue,
         totalBookings,
         totalCustomers,
         activeTurfs: totalTurfs,
       },
+
       operations: {
         bookingsToday: totalBookings,
-        pendingPayments: await prisma.payment.count({
-          where: {
-            status: "PENDING",
-          },
-        }),
+        pendingPayments,
         availableTurfs: totalTurfs,
-        unreadAlerts: await prisma.notification.count({
-          where: {
-            isRead: false,
-          },
-        }),
+        unreadAlerts,
       },
+
       bookingStatusSummary,
       revenueChart,
       recentBookings,
