@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type PaymentAmount = {
+  amount: number;
+};
+
+type TurfWithBookings = {
+  id: string;
+  name: string;
+  bookings: unknown[];
+};
+
 export async function GET() {
   try {
     const [
@@ -8,7 +18,10 @@ export async function GET() {
       totalBookings,
       activeTurfs,
       payments,
-      bookingStatuses,
+      pendingBookings,
+      confirmedBookings,
+      completedBookings,
+      cancelledBookings,
       turfs,
     ] = await Promise.all([
       prisma.customer.count(),
@@ -25,34 +38,61 @@ export async function GET() {
         where: {
           status: "PAID",
         },
+        select: {
+          amount: true,
+        },
       }),
 
-      prisma.booking.groupBy({
-        by: ["status"],
-        _count: true,
+      prisma.booking.count({
+        where: {
+          status: "PENDING",
+        },
+      }),
+
+      prisma.booking.count({
+        where: {
+          status: "CONFIRMED",
+        },
+      }),
+
+      prisma.booking.count({
+        where: {
+          status: "COMPLETED",
+        },
+      }),
+
+      prisma.booking.count({
+        where: {
+          status: "CANCELLED",
+        },
       }),
 
       prisma.turf.findMany({
-        include: {
-          bookings: true,
+        select: {
+          id: true,
+          name: true,
+          bookings: {
+            select: {
+              id: true,
+            },
+          },
         },
       }),
     ]);
 
-    const totalRevenue = payments.reduce(
-      (sum, payment) => sum + payment.amount,
+    const totalRevenue = (payments as PaymentAmount[]).reduce(
+      (sum: number, payment: PaymentAmount) => sum + payment.amount,
       0
     );
 
-    const bookingStatusSummary = bookingStatuses.reduce(
-      (acc, item) => {
-        acc[item.status] = item._count;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const bookingStatusSummary: Record<string, number> = {
+      PENDING: pendingBookings,
+      CONFIRMED: confirmedBookings,
+      COMPLETED: completedBookings,
+      CANCELLED: cancelledBookings,
+    };
 
-    const topTurfs = turfs
+    const topTurfs = (turfs as TurfWithBookings[])
       .map((turf) => ({
         id: turf.id,
         name: turf.name,
