@@ -40,9 +40,10 @@ export default function RevenueChart() {
           </p>
         </div>
 
-        <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-black text-emerald-700">
-          Cached Live
-        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 sm:px-3 sm:py-1.5 sm:text-xs">
+  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+  Live
+</span>
       </div>
 
       <div className="h-[320px] w-full min-w-0">
