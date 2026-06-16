@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
+import { mutate } from "swr";
 import {
   Mail,
   Phone,
@@ -13,13 +15,19 @@ import {
 
 import { Customer } from "@/types/customer";
 
+type CustomersResponse = {
+  success: boolean;
+  data: Customer[];
+  message?: string;
+};
+
+const CUSTOMERS_API = "/api/customers";
+
 const inputClass =
   "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10";
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -31,27 +39,13 @@ export default function CustomersPage() {
     email: "",
   });
 
-  useEffect(() => {
-    async function fetchCustomers() {
-      try {
-        const response = await fetch("/api/customers", {
-          credentials: "include",
-        });
+  const {
+    data,
+    isLoading,
+    error: fetchError,
+  } = useSWR<CustomersResponse>(CUSTOMERS_API);
 
-        const data = await response.json();
-
-        if (data.success) {
-          setCustomers(data.data);
-        }
-      } catch (error) {
-        console.error("FETCH_CUSTOMERS_ERROR", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCustomers();
-  }, []);
+  const customers = data?.data ?? [];
 
   const filteredCustomers = useMemo(() => {
     const value = search.toLowerCase();
@@ -74,6 +68,11 @@ export default function CustomersPage() {
     setError("");
   };
 
+  const handleCloseAdd = () => {
+    setOpenAdd(false);
+    resetForm();
+  };
+
   const handleAddCustomer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -86,7 +85,7 @@ export default function CustomersPage() {
       setAdding(true);
       setError("");
 
-      const response = await fetch("/api/customers", {
+      const response = await fetch(CUSTOMERS_API, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -99,14 +98,22 @@ export default function CustomersPage() {
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (!data.success) {
-        setError(data.message || "Failed to add customer.");
+      if (!responseData.success) {
+        setError(responseData.message || "Failed to add customer.");
         return;
       }
 
-      setCustomers((prev) => [data.data, ...prev]);
+      await mutate(
+        CUSTOMERS_API,
+        {
+          success: true,
+          data: [responseData.data, ...customers],
+        },
+        false
+      );
+
       resetForm();
       setOpenAdd(false);
     } catch (error) {
@@ -124,22 +131,52 @@ export default function CustomersPage() {
 
     if (!confirmDelete) return;
 
+    const previousCustomers = customers;
+
+    await mutate(
+      CUSTOMERS_API,
+      {
+        success: true,
+        data: customers.filter((customer) => customer.id !== id),
+      },
+      false
+    );
+
     try {
       const response = await fetch(`/api/customers/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (!data.success) {
-        alert(data.message || "Failed to delete customer.");
+      if (!responseData.success) {
+        await mutate(
+          CUSTOMERS_API,
+          {
+            success: true,
+            data: previousCustomers,
+          },
+          false
+        );
+
+        alert(responseData.message || "Failed to delete customer.");
         return;
       }
 
-      setCustomers((prev) => prev.filter((customer) => customer.id !== id));
+      mutate(CUSTOMERS_API);
     } catch (error) {
       console.error("DELETE_CUSTOMER_ERROR", error);
+
+      await mutate(
+        CUSTOMERS_API,
+        {
+          success: true,
+          data: previousCustomers,
+        },
+        false
+      );
+
       alert("Something went wrong while deleting customer.");
     }
   };
@@ -166,185 +203,176 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">
-                Total Customers
-              </p>
-              <h3 className="mt-3 text-3xl font-black text-slate-950">
-                {customers.length}
-              </h3>
-            </div>
-
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
-              <Users size={24} />
-            </div>
-          </div>
+      {fetchError || data?.success === false ? (
+        <div className="rounded-[28px] border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-600">
+          {data?.message || "Failed to load customers."}
         </div>
-
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">With Email</p>
-          <h3 className="mt-3 text-3xl font-black text-slate-950">
-            {customers.filter((c) => c.email).length}
-          </h3>
-        </div>
-
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            Search Results
-          </p>
-          <h3 className="mt-3 text-3xl font-black text-slate-950">
-            {filteredCustomers.length}
-          </h3>
-        </div>
-
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            Active Records
-          </p>
-          <h3 className="mt-3 text-3xl font-black text-slate-950">
-            {customers.length}
-          </h3>
-        </div>
-      </div>
-
-      <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 p-5 sm:p-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                Customer List
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Showing{" "}
-                <span className="font-bold text-slate-800">
-                  {filteredCustomers.length}
-                </span>{" "}
-                of{" "}
-                <span className="font-bold text-slate-800">
-                  {customers.length}
-                </span>{" "}
-                customers
-              </p>
-            </div>
-
-            <div className="relative w-full xl:max-w-sm">
-              <Search
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search customers..."
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-semibold outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="p-5 sm:p-6">
-          {loading ? (
-            <div className="flex min-h-[300px] items-center justify-center">
-              <p className="text-sm font-bold text-slate-500">
-                Loading customers...
-              </p>
-            </div>
-          ) : filteredCustomers.length > 0 ? (
-            <div className="overflow-x-auto rounded-2xl border border-slate-100">
-              <table className="w-full min-w-[760px]">
-                <thead className="bg-slate-50">
-                  <tr className="border-b border-slate-200 text-left">
-                    {["Customer", "Phone", "Email", "Created", "Actions"].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className={`px-5 py-4 text-xs font-black uppercase tracking-wider text-slate-500 ${
-                            head === "Actions" ? "text-center" : ""
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filteredCustomers.map((customer) => (
-                    <tr
-                      key={customer.id}
-                      className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50"
-                    >
-                      <td className="px-5 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-black text-emerald-700">
-                            {customer.name.charAt(0)}
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-900">
-                              {customer.name}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              ID: {customer.id.slice(0, 8)}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                          <Phone size={16} className="text-slate-400" />
-                          {customer.phone}
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                          <Mail size={16} className="text-slate-400" />
-                          {customer.email || "No email"}
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-5 text-sm font-semibold text-slate-600">
-                        {new Date(customer.createdAt).toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )}
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => handleDeleteCustomer(customer.id)}
-                            className="rounded-xl p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      ) : (
+        <>
+          {isLoading ? (
+            <CustomersStatsSkeleton />
           ) : (
-            <div className="flex min-h-[300px] items-center justify-center rounded-3xl bg-slate-50">
-              <p className="text-sm font-bold text-slate-500">
-                No customers found.
-              </p>
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                title="Total Customers"
+                value={customers.length}
+                icon={<Users size={24} />}
+                color="bg-purple-50 text-purple-600"
+              />
+
+              <StatCard
+                title="With Email"
+                value={customers.filter((c) => c.email).length}
+              />
+
+              <StatCard
+                title="Search Results"
+                value={filteredCustomers.length}
+              />
+
+              <StatCard title="Active Records" value={customers.length} />
             </div>
           )}
-        </div>
-      </section>
+
+          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 p-5 sm:p-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight text-slate-950">
+                    Customer List
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Showing{" "}
+                    <span className="font-bold text-slate-800">
+                      {filteredCustomers.length}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-bold text-slate-800">
+                      {customers.length}
+                    </span>{" "}
+                    customers
+                  </p>
+                </div>
+
+                <div className="relative w-full xl:max-w-sm">
+                  <Search
+                    size={18}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search customers..."
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-semibold outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              {isLoading ? (
+                <CustomersTableSkeleton />
+              ) : filteredCustomers.length > 0 ? (
+                <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                  <table className="w-full min-w-[760px]">
+                    <thead className="bg-slate-50">
+                      <tr className="border-b border-slate-200 text-left">
+                        {[
+                          "Customer",
+                          "Phone",
+                          "Email",
+                          "Created",
+                          "Actions",
+                        ].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-5 py-4 text-xs font-black uppercase tracking-wider text-slate-500 ${
+                              head === "Actions" ? "text-center" : ""
+                            }`}
+                          >
+                            {head}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredCustomers.map((customer) => (
+                        <tr
+                          key={customer.id}
+                          className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50"
+                        >
+                          <td className="px-5 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-black text-emerald-700">
+                                {customer.name.charAt(0)}
+                              </div>
+
+                              <div>
+                                <p className="font-bold text-slate-900">
+                                  {customer.name}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  ID: {customer.id.slice(0, 8)}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-5">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                              <Phone size={16} className="text-slate-400" />
+                              {customer.phone}
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-5">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                              <Mail size={16} className="text-slate-400" />
+                              {customer.email || "No email"}
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-5 text-sm font-semibold text-slate-600">
+                            {new Date(customer.createdAt).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )}
+                          </td>
+
+                          <td className="px-5 py-5">
+                            <div className="flex justify-center">
+                              <button
+                                onClick={() =>
+                                  handleDeleteCustomer(customer.id)
+                                }
+                                className="rounded-xl p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center rounded-3xl bg-slate-50">
+                  <p className="text-sm font-bold text-slate-500">
+                    No customers found.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      )}
 
       {openAdd && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
@@ -361,10 +389,7 @@ export default function CustomersPage() {
               </div>
 
               <button
-                onClick={() => {
-                  setOpenAdd(false);
-                  resetForm();
-                }}
+                onClick={handleCloseAdd}
                 className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
               >
                 <X size={18} />
@@ -399,15 +424,14 @@ export default function CustomersPage() {
                 className={inputClass}
               />
 
-              {error && <p className="text-sm font-bold text-red-500">{error}</p>}
+              {error && (
+                <p className="text-sm font-bold text-red-500">{error}</p>
+              )}
 
               <div className="flex justify-end gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    setOpenAdd(false);
-                    resetForm();
-                  }}
+                  onClick={handleCloseAdd}
                   className="rounded-2xl border border-slate-200 px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
@@ -425,6 +449,75 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  icon,
+  color = "bg-slate-50 text-slate-600",
+}: {
+  title: string;
+  value: number;
+  icon?: React.ReactNode;
+  color?: string;
+}) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-500">{title}</p>
+          <h3 className="mt-3 text-3xl font-black text-slate-950">{value}</h3>
+        </div>
+
+        {icon && (
+          <div
+            className={`flex h-14 w-14 items-center justify-center rounded-2xl ${color}`}
+          >
+            {icon}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CustomersStatsSkeleton() {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-[132px] animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
+        />
+      ))}
+    </div>
+  );
+}
+
+function CustomersTableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-100">
+      <div className="grid grid-cols-5 gap-4 border-b border-slate-100 bg-slate-50 p-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="h-3 rounded-full bg-slate-200" />
+        ))}
+      </div>
+
+      <div className="divide-y divide-slate-100">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="grid grid-cols-5 gap-4 p-5">
+            {Array.from({ length: 5 }).map((_, itemIndex) => (
+              <div
+                key={itemIndex}
+                className="h-4 animate-pulse rounded-full bg-slate-100"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

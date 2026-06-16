@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import {
   CalendarDays,
   IndianRupee,
@@ -63,51 +63,47 @@ function formatValue(key: keyof DashboardStats, value: number) {
   return value.toString();
 }
 
+function StatsSkeleton() {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {statMeta.map((stat) => (
+        <div
+          key={stat.title}
+          className="h-[168px] animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <div className="h-4 w-28 rounded-full bg-slate-100" />
+          <div className="mt-5 h-8 w-32 rounded-full bg-slate-100" />
+          <div className="mt-6 h-5 w-40 rounded-full bg-slate-100" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function StatsOverview() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, error } =
+    useSWR<DashboardResponse>("/api/dashboard");
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const response = await fetch("/api/dashboard", {
-          credentials: "include",
-        });
+  if (isLoading) {
+    return <StatsSkeleton />;
+  }
 
-        const data: DashboardResponse = await response.json();
-
-        if (data.success) {
-          setStats(data.stats);
-        }
-      } catch (error) {
-        console.error("FAILED_TO_FETCH_DASHBOARD_STATS", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchStats();
-  }, []);
-
-  if (loading) {
+  if (error || !data?.success) {
     return (
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {statMeta.map((stat) => (
-          <div
-            key={stat.title}
-            className="h-[168px] animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
-          />
-        ))}
+      <div className="rounded-[28px] border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-600">
+        Failed to load dashboard stats.
       </div>
     );
   }
+
+  const stats = data.stats;
 
   return (
     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
       {statMeta.map((stat) => {
         const Icon = stat.icon;
         const key = stat.key as keyof DashboardStats;
-        const value = stats ? stats[key] : 0;
+        const value = stats[key] ?? 0;
 
         return (
           <div

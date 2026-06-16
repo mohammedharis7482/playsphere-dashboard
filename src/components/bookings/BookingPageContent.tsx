@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR, { mutate } from "swr";
 
 import { Booking } from "@/types/booking";
 
@@ -15,6 +16,7 @@ import BookingFilters from "./BookingFilters";
 import BookingPagination from "./BookingPagination";
 
 const ITEMS_PER_PAGE = 5;
+const BOOKINGS_API = "/api/bookings";
 
 type ApiBooking = {
   id: string;
@@ -34,6 +36,12 @@ type ApiBooking = {
   payment: {
     status: Booking["paymentStatus"];
   } | null;
+};
+
+type BookingsResponse = {
+  success: boolean;
+  data: ApiBooking[];
+  message?: string;
 };
 
 function formatBooking(booking: ApiBooking): Booking {
@@ -60,35 +68,21 @@ function formatBooking(booking: ApiBooking): Booking {
 }
 
 export default function BookingPageContent() {
-  const [bookingList, setBookingList] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
   const [view, setView] = useState("table");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    async function fetchBookings() {
-      try {
-        const response = await fetch("/api/bookings", {
-          credentials: "include",
-        });
+  const {
+    data,
+    isLoading,
+    error,
+  } = useSWR<BookingsResponse>(BOOKINGS_API);
 
-        const data = await response.json();
-
-        if (data.success) {
-          const formattedBookings = data.data.map(formatBooking);
-          setBookingList(formattedBookings);
-        }
-      } catch (error) {
-        console.error("FETCH_BOOKINGS_ERROR", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchBookings();
-  }, []);
+  const bookingList = useMemo(() => {
+    if (!data?.success) return [];
+    return data.data.map(formatBooking);
+  }, [data]);
 
   const revenue = bookingList
     .filter((booking) => booking.paymentStatus === "PAID")
@@ -120,23 +114,17 @@ export default function BookingPageContent() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  const handleAddBooking = (booking: Booking) => {
-    setBookingList((prev) => [booking, ...prev]);
+  const handleAddBooking = async () => {
     setCurrentPage(1);
+    await mutate(BOOKINGS_API);
   };
 
-  const handleUpdateBooking = (updatedBooking: Booking) => {
-    setBookingList((prev) =>
-      prev.map((booking) =>
-        booking.id === updatedBooking.id ? updatedBooking : booking
-      )
-    );
+  const handleUpdateBooking = async () => {
+    await mutate(BOOKINGS_API);
   };
 
-  const handleDeleteBooking = (bookingId: string) => {
-    setBookingList((prev) =>
-      prev.filter((booking) => booking.id !== bookingId)
-    );
+  const handleDeleteBooking = async () => {
+    await mutate(BOOKINGS_API);
   };
 
   const handleClearFilters = () => {
@@ -145,11 +133,15 @@ export default function BookingPageContent() {
     setCurrentPage(1);
   };
 
-  if (loading) {
+  if (isLoading) {
+    return <BookingPageSkeleton />;
+  }
+
+  if (error || data?.success === false) {
     return (
-      <div className="flex min-h-[500px] items-center justify-center rounded-[28px] border border-slate-200 bg-white">
-        <p className="text-sm font-bold text-slate-500">
-          Loading bookings...
+      <div className="flex min-h-[500px] items-center justify-center rounded-[28px] border border-red-100 bg-red-50">
+        <p className="text-sm font-bold text-red-500">
+          {data?.message || "Failed to load bookings."}
         </p>
       </div>
     );
@@ -208,6 +200,58 @@ export default function BookingPageContent() {
       )}
 
       <BookingActivity />
+    </div>
+  );
+}
+
+function BookingPageSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-[150px] animate-pulse rounded-[28px] border border-slate-200 bg-white shadow-sm"
+          />
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="h-[260px] animate-pulse rounded-[28px] border border-slate-200 bg-white shadow-sm" />
+        <div className="h-[260px] animate-pulse rounded-[28px] border border-slate-200 bg-white shadow-sm xl:col-span-2" />
+      </div>
+
+      <div className="h-[86px] animate-pulse rounded-[28px] border border-slate-200 bg-white shadow-sm" />
+
+      <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <div className="h-[110px] animate-pulse border-b border-slate-100 bg-white" />
+
+        <div className="p-5 sm:p-6">
+          <div className="overflow-hidden rounded-2xl border border-slate-100">
+            <div className="grid grid-cols-7 gap-4 border-b border-slate-100 bg-slate-50 p-5">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-3 rounded-full bg-slate-200"
+                />
+              ))}
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {Array.from({ length: 5 }).map((_, rowIndex) => (
+                <div key={rowIndex} className="grid grid-cols-7 gap-4 p-5">
+                  {Array.from({ length: 7 }).map((_, colIndex) => (
+                    <div
+                      key={colIndex}
+                      className="h-4 animate-pulse rounded-full bg-slate-100"
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

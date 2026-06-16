@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import {
   Area,
   AreaChart,
@@ -22,30 +22,10 @@ type DashboardResponse = {
 };
 
 export default function RevenueChart() {
-  const [revenueData, setRevenueData] = useState<RevenueItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, error } =
+    useSWR<DashboardResponse>("/api/dashboard");
 
-  useEffect(() => {
-    async function fetchRevenueData() {
-      try {
-        const response = await fetch("/api/dashboard", {
-          credentials: "include",
-        });
-
-        const data: DashboardResponse = await response.json();
-
-        if (data.success) {
-          setRevenueData(data.revenueChart);
-        }
-      } catch (error) {
-        console.error("FAILED_TO_FETCH_REVENUE_CHART", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchRevenueData();
-  }, []);
+  const revenueData = data?.revenueChart ?? [];
 
   return (
     <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -61,13 +41,17 @@ export default function RevenueChart() {
         </div>
 
         <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-black text-emerald-700">
-          Live Data
+          Cached Live
         </span>
       </div>
 
       <div className="h-[320px] w-full min-w-0">
-        {loading ? (
+        {isLoading ? (
           <div className="h-full w-full animate-pulse rounded-2xl bg-slate-100" />
+        ) : error || !data?.success ? (
+          <div className="flex h-full items-center justify-center rounded-2xl bg-red-50 text-sm font-bold text-red-600">
+            Failed to load revenue chart.
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={revenueData}>

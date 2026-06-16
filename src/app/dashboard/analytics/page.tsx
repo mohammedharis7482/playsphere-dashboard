@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
 import {
   Activity,
   BarChart3,
@@ -55,34 +56,16 @@ function formatStatus(status: string) {
 }
 
 export default function AnalyticsPage() {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [range, setRange] = useState("30 Days");
 
-  useEffect(() => {
-    async function fetchAnalytics() {
-      try {
-        const response = await fetch("/api/analytics", {
-          credentials: "include",
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          setAnalytics(data);
-        }
-      } catch (error) {
-        console.error("FETCH_ANALYTICS_ERROR", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAnalytics();
-  }, []);
+  const {
+    data: analytics,
+    isLoading,
+    error,
+  } = useSWR<AnalyticsData>("/api/analytics");
 
   const bookingStatusData = useMemo(() => {
-    if (!analytics) return [];
+    if (!analytics?.success) return [];
 
     return Object.entries(analytics.bookingStatusSummary).map(
       ([status, value]) => ({
@@ -140,19 +123,13 @@ export default function AnalyticsPage() {
     { hour: "10 PM", bookings: 25 },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[500px] items-center justify-center rounded-[32px] border border-slate-200 bg-white">
-        <p className="text-sm font-bold text-slate-500">
-          Loading analytics...
-        </p>
-      </div>
-    );
+  if (isLoading) {
+    return <AnalyticsSkeleton />;
   }
 
-  if (!analytics) {
+  if (error || !analytics?.success) {
     return (
-      <div className="flex min-h-[500px] items-center justify-center rounded-[32px] border border-slate-200 bg-white">
+      <div className="flex min-h-[500px] items-center justify-center rounded-[32px] border border-red-100 bg-red-50">
         <p className="text-sm font-bold text-red-500">
           Failed to load analytics.
         </p>
@@ -703,6 +680,46 @@ export default function AnalyticsPage() {
   );
 }
 
+function AnalyticsSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <div className="h-9 w-44 animate-pulse rounded-full bg-slate-200" />
+        <div className="mt-3 h-4 w-96 max-w-full animate-pulse rounded-full bg-slate-200" />
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-[150px] animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
+          />
+        ))}
+      </div>
+
+      <div className="h-20 animate-pulse rounded-[32px] border border-slate-200 bg-white shadow-sm" />
+
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-[170px] animate-pulse rounded-[28px] border border-slate-200 bg-white shadow-sm"
+          />
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-[380px] animate-pulse rounded-[32px] border border-slate-200 bg-white shadow-sm"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StatCard({
   title,
   value,
@@ -764,7 +781,9 @@ function CompactStatCard({
 }) {
   return (
     <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${color}`}>
+      <div
+        className={`flex h-12 w-12 items-center justify-center rounded-2xl ${color}`}
+      >
         <Icon size={21} />
       </div>
 
@@ -819,7 +838,9 @@ function SummaryRow({
   return (
     <div className="flex items-center justify-between rounded-3xl bg-slate-50 p-4">
       <div className="flex items-center gap-3">
-        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${color}`}>
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-2xl ${color}`}
+        >
           <Icon size={19} />
         </div>
 
@@ -847,7 +868,9 @@ function ActivityItem({
   return (
     <div className="flex items-center justify-between gap-4 rounded-3xl bg-slate-50 p-4">
       <div className="flex items-center gap-4">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${color}`}>
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-2xl ${color}`}
+        >
           <Icon size={20} />
         </div>
 
