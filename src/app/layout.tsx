@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
+
+export const metadata: Metadata = {
+  title: "PlaySphere Admin Dashboard",
+  description: "Sports Turf Booking Management System",
+};
 
 export default function RootLayout({
   children,

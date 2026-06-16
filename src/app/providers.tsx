@@ -1,14 +1,7 @@
 "use client";
 
 import { SWRConfig } from "swr";
-
-const fetcher = async (url: string) => {
-  const response = await fetch(url, {
-    credentials: "include",
-  });
-
-  return response.json();
-};
+import { fetcher } from "@/lib/fetcher";
 
 export default function Providers({
   children,
@@ -20,8 +13,10 @@ export default function Providers({
       value={{
         fetcher,
         revalidateOnFocus: false,
-        revalidateIfStale: false,
+        revalidateOnReconnect: true,
         dedupingInterval: 30000,
+        keepPreviousData: true,
+        shouldRetryOnError: false,
       }}
     >
       {children}

@@ -3,9 +3,11 @@ export async function fetcher<T>(url: string): Promise<T> {
       credentials: "include",
     });
   
+    const data = await response.json();
+  
     if (!response.ok) {
-      throw new Error("Failed to fetch data");
+      throw new Error(data?.message || "Failed to fetch data");
     }
   
-    return response.json();
+    return data;
   }
